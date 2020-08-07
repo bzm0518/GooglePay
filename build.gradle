@@ -3,9 +3,13 @@ buildscript {
     repositories {
         google()
         jcenter()
+        mavenCentral()
     }
     dependencies {
         classpath "com.android.tools.build:gradle:4.0.0"
+        //加这个是Gradle插件，如果用不到可以不加
+        //classpath 'com.google.gms:google-services:4.0.1'
+        //如果加上上面那个的话，要在app的gradle中加 apply plugin: 'com.google.gms.google-services'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files

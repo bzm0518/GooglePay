@@ -1,4 +1,4 @@
-package com.bzm.googlenew;
+package com.bzm.googlenew.google.pay;
 
 import android.app.Activity;
 import android.content.Context;
@@ -26,6 +26,9 @@ import java.util.List;
 /**
  * Created by bzm0518
  * on 2020/8/6
+ * 官方文档:https://developer.android.google.cn/google/play/billing/integrate#ooap
+ * 从老版本到新版本(aidl版本到最新版本改变):https://developer.android.google.cn/google/play/billing/migrate
+ * aidl版本2020年年末就取消使用了
  */
 public class GooglePayHelper implements PurchasesUpdatedListener {
 
@@ -40,13 +43,28 @@ public class GooglePayHelper implements PurchasesUpdatedListener {
 
     private Activity mCurrentActivity;
 
-    public GooglePayHelper(Activity activity){
-        this.mCurrentActivity = activity;
+    private GooglePayHelper(){
     }
 
+    private static GooglePayHelper mInstance;
 
+    public static GooglePayHelper getInstance(){
+        if (mInstance == null){
+            synchronized (GooglePayHelper.class){
+                if (mInstance == null){
+                    mInstance = new GooglePayHelper();
+                }
+            }
+        }
+        return mInstance;
+    }
 
-    public void initialize(){
+    /**
+     * 初始化
+     * @param activity
+     */
+    public void initialize(Activity activity){
+        this.mCurrentActivity = activity;
         //初始化BillingClient
         billingClient = BillingClient.newBuilder(mCurrentActivity)
                 //监听支付
@@ -75,7 +93,7 @@ public class GooglePayHelper implements PurchasesUpdatedListener {
      */
     public void pay(final String sku) throws JSONException {
         if (!billingClient.isReady()){
-            //没有链接到Google的服务
+            //没有链接到Google的服务，做重连
             return;
         }
         //sku 唯一商品 ID（也称为 SKU）。必须以小写字母或数字开头，并且只能由小写字母 (a-z)、数字 (0-9)、下划线 (_) 和句点 (.) 组成
@@ -156,7 +174,7 @@ public class GooglePayHelper implements PurchasesUpdatedListener {
      */
     public void consumePurchase(String purchaseToken){
         if (!billingClient.isReady()){
-            //没有链接到Google的服务
+            //没有链接到Google的服务，做重连
             return;
         }
         ConsumeParams consumeParams =
@@ -171,8 +189,31 @@ public class GooglePayHelper implements PurchasesUpdatedListener {
         });
     }
 
-
-
+    /**
+     * 查询所有未消耗的商品
+     */
+    private void queryPurchases(){
+        if (!billingClient.isReady()){
+            //没有链接到Google的服务，做重连
+            return;
+        }
+        Purchase.PurchasesResult result = billingClient.queryPurchases(BillingClient.SkuType.INAPP);
+        if (result == null){
+            return;
+        }else {
+            if (result.getPurchasesList() != null){
+                //走消耗流程
+                for (Purchase purchase : result.getPurchasesList()) {
+                    if (purchase.getPurchaseState() == Purchase.PurchaseState.PURCHASED){
+                        //消耗
+                        handlePurchase(purchase);
+                    }
+                }
+            }else {
+                //无可消耗商品
+            }
+        }
+    }
 
 
 
